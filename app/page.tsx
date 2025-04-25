@@ -1,8 +1,9 @@
+import Home from "./components/Home";
 
-export default function Home() {
+export default function App() {
   return (
     <div className="text-2xl bg-red-50">
-      hello 
+      <Home /> 
     </div>
   );
 }
