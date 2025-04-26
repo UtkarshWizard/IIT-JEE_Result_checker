@@ -1,15 +1,20 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { PrismaClient } from "@/app/generated/prisma" 
+import { PrismaClient } from "@/app/generated/prisma";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export async function findResultByHallTicket (hallTicket: string) {
-  const res = await fetch('/api/result', {
+const getBaseUrl = () => {
+  if (typeof window !== "undefined") return ""; // client-side, relative path is fine
+  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"; // server-side
+};
+
+export async function findResultByHallTicket(hallTicket: string) {
+  const res = await fetch(`${getBaseUrl()}/api/result`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -24,5 +29,11 @@ export async function findResultByHallTicket (hallTicket: string) {
 
   const data = await res.json();
   return data.student;
-};
+}
+
+
+export async function getUniqueStates(): Promise<string[]> {
+  const res = await fetch(`${getBaseUrl()}/api/student/unique-states`);
+  return res.json();
+}
 

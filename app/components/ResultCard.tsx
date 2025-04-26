@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { Student } from '@/lib/types' 
 import { calculatePercentage, generateShareLink, storeSharedLink } from '@/lib/helpers' 
 import { Download, Share2, CheckCircle, XCircle } from 'lucide-react'
-import html2canvas from 'html2canvas'
 import { jsPDF } from 'jspdf'
+import * as htmlToImage from 'html-to-image'
 
 interface ResultCardProps {
   student: Student
@@ -23,48 +23,52 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
   
   const handleDownload = async (format: 'pdf' | 'jpeg') => {
     try {
-      const element = document.getElementById('result-card')
-      if (!element) return
-      
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        logging: false,
-        useCORS: true,
-      })
-      
+      const element = document.getElementById('result-card');
+      if (!element) return;
+  
+      const clone = element.cloneNode(true) as HTMLElement;
+  
+      // clone.style.backgroundColor = '#ffffff';
+      // clone.style.color = '#000000';
+  
+      clone.querySelectorAll('*').forEach((child) => {
+        const el = child as HTMLElement;
+        if (el.style.color.includes('oklch')) el.style.color = '#000000';
+        if (el.style.backgroundColor.includes('oklch')) el.style.backgroundColor = '#ffffff';
+        if (el.style.borderColor.includes('oklch')) el.style.borderColor = '#000000';
+      });
+  
+      // clone.style.position = 'absolute';
+      // clone.style.left = '-9999px';
+      document.body.appendChild(clone);
+  
+      const dataUrl = await htmlToImage.toJpeg(clone, { quality: 1.0, backgroundColor: '#ffffff' });
+  
+      document.body.removeChild(clone);
+  
       if (format === 'pdf') {
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'mm',
-          format: 'a4',
-        })
-        
-        const imgWidth = 210
-        const imgHeight = (canvas.height * imgWidth) / canvas.width
-        
-        pdf.addImage(
-          canvas.toDataURL('image/jpeg', 1.0),
-          'JPEG',
-          0,
-          0,
-          imgWidth,
-          imgHeight
-        )
-        
-        pdf.save(`JEE_Result_${student.hallTicket}.pdf`)
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const img = new Image();
+        img.src = dataUrl;
+        img.onload = () => {
+          const pdfHeight = (img.height * pdfWidth) / img.width;
+          pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+          pdf.save(`JEE_Result_${student.hallTicket}.pdf`);
+        }
       } else {
-        const link = document.createElement('a')
-        link.download = `JEE_Result_${student.hallTicket}.jpeg`
-        link.href = canvas.toDataURL('image/jpeg', 1.0)
-        link.click()
+        const link = document.createElement('a');
+        link.download = `JEE_Result_${student.hallTicket}.jpeg`;
+        link.href = dataUrl;
+        link.click();
       }
-      
-      alert(`Result has been downloaded as ${format.toUpperCase()}`)
+  
     } catch (err) {
-      console.error('Error generating download:', err)
-      alert('An error occurred while generating the download. Please try again.')
+      console.error('Error generating download:', err);
+      alert('An error occurred while generating the download. Please try again.');
     }
-  }
+  };
+  
   
   const handleShare = async () => {
     if (isShared) {
@@ -80,8 +84,7 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
       
       const url = `${window.location.origin}/shared/${link.id}`
       setShareUrl(url)
-      
-      // Update time remaining
+
       const updateTimer = () => {
         const now = new Date()
         const diffMs = link.expiresAt.getTime() - now.getTime()
@@ -100,7 +103,6 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
       updateTimer()
       const intervalId = setInterval(updateTimer, 1000)
       
-      // Copy to clipboard
       await navigator.clipboard.writeText(url)
       alert('Share link has been copied to clipboard!')
     } catch (err) {
@@ -112,7 +114,7 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
   }
   
   return (
-    <div className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
+    <div id="result-card" className="w-full max-w-4xl mx-auto bg-white rounded-lg shadow-lg overflow-hidden border border-gray-200">
       <div className="bg-gradient-to-r from-blue-900 to-indigo-800 py-4 px-6 text-white flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">JEE Result</h2>
@@ -135,7 +137,7 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
       
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Student Information */}
+
           <div className="md:col-span-2 space-y-4">
             <h3 className="text-lg font-semibold text-gray-800 border-b pb-2">Student Information</h3>
             
@@ -158,8 +160,7 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
               </div>
             </div>
           </div>
-          
-          {/* Student Photo */}
+
           <div className="flex flex-col items-center justify-center">
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-500">All India Rank</p>
@@ -167,8 +168,7 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
             </div>
           </div>
         </div>
-        
-        {/* Marks Details */}
+
         <div className="mt-8">
           <h3 className="text-lg font-semibold text-gray-800 border-b pb-2 mb-4">Marks Details</h3>
           
@@ -201,6 +201,37 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">70</div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{calculatePercentage(student.physicsMarks , 70).toFixed(2)}%</div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">Chemistry</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{student.chemistryMarks}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">70</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{calculatePercentage(student.chemistryMarks , 70).toFixed(2)}%</div>
+                    </td>
+                  </tr>
+                  <tr className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900">Maths</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{student.mathMarks}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">70</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{calculatePercentage(student.mathMarks , 70).toFixed(2)}%</div>
+                    </td>
                   </tr>
                 <tr className="bg-blue-50">
                   <td className="px-6 py-4 whitespace-nowrap font-medium">
@@ -220,20 +251,17 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
             </table>
           </div>
         </div>
-        
-        {/* Additional Info */}
-        {/* {result.qualified && result.counselingDate && (
+
+        {student.passed && (
           <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <h4 className="font-medium text-green-800 mb-1">Counseling Information</h4>
             <p className="text-sm text-green-700">
-              Congratulations! You have qualified for counseling. Your counseling date is scheduled for{' '}
-              <span className="font-semibold">{formatDate(result.counselingDate)}</span>.
-              Please carry all original documents and admission letter.
+              Congratulations! You have qualified for counseling.
+              Please prepare all original documents.
             </p>
           </div>
-        )} */}
-        
-        {/* Share Link Info */}
+        )}
+
         {shareUrl && (
           <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h4 className="font-medium text-blue-800 mb-1">Shareable Link Generated</h4>
@@ -251,8 +279,7 @@ export default function ResultCard({ student, isShared = false }: ResultCardProp
             </div>
           </div>
         )}
-        
-        {/* Action Buttons */}
+
         <div className="mt-8 flex flex-col sm:flex-row gap-4">
           <div className="sm:w-1/2">
             <p className="text-sm text-gray-600 mb-2">Download Result</p>

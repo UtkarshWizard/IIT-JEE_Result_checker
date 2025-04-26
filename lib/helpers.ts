@@ -32,7 +32,7 @@ export const formatTimeRemaining = (expiresAt: Date): string => {
     const diffSecs = Math.floor((diffMs % 60000) / 1000)
     
     return `${diffMins}:${diffSecs < 10 ? '0' + diffSecs : diffSecs}`
-  }
+}
   
 export const storeSharedLink = (link: SharedLink): void => {
     const storedLinks = getStoredSharedLinks()
@@ -56,10 +56,10 @@ export const getStoredSharedLinks = (): SharedLink[] => {
       console.error('Error parsing shared links from localStorage', error)
       return []
     }
-  }
+}
 
 export const getSharedLinkById = (id: string): SharedLink | null => {
     const storedLinks = getStoredSharedLinks()
     const link = storedLinks.find(link => link.id === id)
     return link || null
-  }
+}
