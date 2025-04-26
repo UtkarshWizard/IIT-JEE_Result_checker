@@ -1,13 +1,15 @@
 'use client'
 
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import ResultCard from '../components/ResultCard' 
 import NotFound from '../components/NotFound'
 import { findResultByHallTicket } from '@/lib/utils'
 import { Student } from '@/lib/types'
 
-export default function ResultPage() {
+export const dynamic = 'force-dynamic';
+
+function ResultPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [result, setResult] = useState<Student | null>(null)
@@ -84,5 +86,13 @@ export default function ResultPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function ResultPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResultPageContent />
+    </Suspense>
   )
 }

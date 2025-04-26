@@ -62,6 +62,7 @@ export default function SharedResultPage() {
         
         return () => clearInterval(intervalId)
       } catch (err) {
+        console.log(err)
         setError('An error occurred while fetching the shared result')
       } finally {
         setIsLoading(false)

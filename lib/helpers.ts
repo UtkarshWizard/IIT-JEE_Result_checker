@@ -47,7 +47,7 @@ export const getStoredSharedLinks = (): SharedLink[] => {
     }
     
     try {
-      return JSON.parse(storedLinksJson).map((link: any) => ({
+      return JSON.parse(storedLinksJson).map((link: SharedLink) => ({
         ...link,
         createdAt: new Date(link.createdAt),
         expiresAt: new Date(link.expiresAt),

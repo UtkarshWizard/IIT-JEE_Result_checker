@@ -9,7 +9,7 @@ export interface Student {
     mathMarks: number
     totalMarks: number
     rank: number
-    passed: Boolean
+    passed: boolean
   }
 
 export interface SharedLink {
